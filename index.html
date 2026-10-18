@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Network Failure &amp; Recovery Simulator</title>
+    <meta name="description" content="A hands-on network operations console for studying reachability, failure domains, and recovery across a six-router topology." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Network Failure &amp; Recovery Simulator" />
+    <meta property="og:description" content="Explore how router failures reshape network reachability in real time." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Network Failure &amp; Recovery Simulator" />
+    <meta name="twitter:description" content="Explore how router failures reshape network reachability in real time." />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5v5m0 7v5m-8.5-9h5m7 0h5M6 6l3.5 3.5m5 5L18 18m0-12-3.5 3.5m-5 5L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="3.3" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <div><div class="brand-title">NETLAB / FIELD SIMULATOR</div><span class="brand-subtitle">NETWORK OPERATIONS CONSOLE</span></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="api-indicator"><i id="api-dot" class="pulse-dot offline"></i><span id="api-status">CONNECTING</span></span>
+          <span class="poll-label">POLL · 3 SEC</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="intro">
+          <div>
+            <div class="eyebrow">Lab 04 &nbsp; / &nbsp; Fault tolerance</div>
+            <h1>Network failure &amp; recovery</h1>
+            <p>Inject a fault. Trace what can still be reached.</p>
+          </div>
+          <div class="intro-aside"><span>SESSION</span><span class="live-clock" id="clock">--:--:-- UTC</span><span>·</span><span>LIVE STATE</span></div>
+        </section>
+
+        <section class="metrics-grid" aria-label="Network metrics">
+          <article class="metric"><div class="metric-label">Network availability</div><div class="metric-value cyan" id="metric-availability">—<small>%</small></div><div class="metric-foot">CURRENT REACHABLE SHARE</div></article>
+          <article class="metric"><div class="metric-label">Routers online</div><div class="metric-value good" id="metric-routers">—<small> / —</small></div><div class="metric-foot">ACTIVE NODES</div></article>
+          <article class="metric"><div class="metric-label">Failed routers</div><div class="metric-value" id="metric-failed">—</div><div class="metric-foot">FAULT INJECTED</div></article>
+          <article class="metric"><div class="metric-label">Active links</div><div class="metric-value" id="metric-links">—<small> / —</small></div><div class="metric-foot">OPERATIONAL PATHS</div></article>
+          <article class="metric"><div class="metric-label">Topology mode</div><div class="metric-value cyan" id="metric-topology" style="font-size:19px;letter-spacing:-.025em">—</div><div class="metric-foot">CURRENT GRAPH MODEL</div></article>
+        </section>
+
+        <div id="error-banner" class="status-banner" role="alert">
+          <span id="error-message">Unable to reach the simulator API.</span>
+          <button type="button" id="retry-button" data-testid="button-retry">RETRY CONNECTION</button>
+        </div>
+
+        <section class="main-grid">
+          <article class="panel topology-panel">
+            <div class="panel-heading">
+              <div><h2 class="panel-title">Topology map</h2><div class="panel-kicker">LIVE ROUTER &amp; LINK STATE · SELECT A NODE TO TOGGLE</div></div>
+              <select id="topology-select" class="topology-select" aria-label="Choose network topology" data-testid="select-topology">
+                <option value="star">Star</option><option value="ring">Ring</option><option value="mesh">Mesh</option>
+              </select>
+            </div>
+            <div class="diagram-wrap">
+              <div id="loading-cover" class="loading-cover visible" aria-live="polite"><div class="loading-card"><i class="skeleton-pulse"></i><span>SYNCING NETWORK STATE…</span></div></div>
+              <svg id="topology-svg" viewBox="0 0 800 390" role="img" aria-label="Network topology diagram"></svg>
+              <div id="diagram-empty" class="diagram-empty" hidden>Topology data is not available.<span>Waiting for API response.</span></div>
+            </div>
+            <div class="legend">
+              <div class="legend-items"><span class="legend-item"><i class="legend-mark"></i>ONLINE ROUTER</span><span class="legend-item"><i class="legend-mark down"></i>FAILED ROUTER</span><span class="legend-item"><i class="legend-line"></i>ACTIVE LINK</span></div>
+              <span class="diagram-caption" id="link-count-label">AWAITING TELEMETRY</span>
+            </div>
+          </article>
+
+          <aside class="side-stack">
+            <section class="panel control-panel">
+              <div class="panel-heading"><div><h2 class="panel-title">Fault controls</h2><div class="panel-kicker">EXPERIMENT WITH FAILURE SCENARIOS</div></div></div>
+              <div class="control-group">
+                <div class="control-label">Select topology</div>
+                <div class="topology-buttons" role="group" aria-label="Topology presets">
+                  <button class="topology-button" data-topology="star" data-testid="button-topology-star">STAR</button>
+                  <button class="topology-button" data-topology="ring" data-testid="button-topology-ring">RING</button>
+                  <button class="topology-button" data-topology="mesh" data-testid="button-topology-mesh">MESH</button>
+                </div>
+              </div>
+              <div class="control-group router-count-control">
+                <label class="control-label" for="router-count">Routers in simulation</label>
+                <div class="router-count-row">
+                  <select id="router-count" class="topology-select router-count-select" aria-label="Choose number of routers" data-testid="select-router-count">
+                    <option value="2">2 routers</option>
+                    <option value="3">3 routers</option>
+                    <option value="4">4 routers</option>
+                    <option value="5">5 routers</option>
+                    <option value="6" selected>6 routers</option>
+                    <option value="7">7 routers</option>
+                    <option value="8">8 routers</option>
+                    <option value="9">9 routers</option>
+                    <option value="10">10 routers</option>
+                    <option value="11">11 routers</option>
+                    <option value="12">12 routers</option>
+                  </select>
+                  <span class="router-count-note">RANGE · 2–12</span>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="control-group">
+                <div class="control-label">Bulk operations</div>
+                <div class="button-row">
+                  <button class="action-button danger" id="fail-all" data-testid="button-fail-all">FAIL ALL</button>
+                  <button class="action-button recover" id="recover-all" data-testid="button-recover-all">RECOVER ALL</button>
+                  <button class="action-button reset" id="reset-network" data-testid="button-reset">RESET NETWORK</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel router-list-panel">
+              <div class="panel-heading"><div><h2 class="panel-title">Router inventory</h2><div class="panel-kicker" id="router-summary">6 NODES · STATE UNKNOWN</div></div></div>
+              <div class="router-list" id="router-list" aria-live="polite"></div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel info-panel">
+            <div class="panel-heading"><div><h2 class="panel-title">Reachability analysis</h2><div class="panel-kicker">CONNECTED COMPONENTS FROM CURRENT NETWORK STATE</div></div></div>
+            <div class="reachability-content">
+              <div class="reachability-block"><div class="reachability-title">Reachable</div><div id="reachable-list" class="chips"></div></div>
+              <div class="reachability-block"><div class="reachability-title">Unreachable</div><div id="unreachable-list" class="chips"></div></div>
+            </div>
+          </article>
+          <article class="panel events-panel">
+            <div class="panel-heading"><div><h2 class="panel-title">Event stream</h2><div class="panel-kicker">LATEST SIMULATOR EVENTS</div></div><span class="mono" style="font-size:9px;color:var(--quiet)">LIVE</span></div>
+            <div id="event-list" class="event-list" aria-live="polite"></div>
+          </article>
+        </section>
+      </main>
+      <footer class="page-footer"><span>NETLAB / ROUTING &amp; RESILIENCE PRACTICUM</span><span>STATE REFRESHES EVERY 3 SECONDS</span></footer>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+# Compiled executable
+network-simulator
+
+# Generated build output
+dist/
+node_modules/
+
+# macOS files
+.DS_Store
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Editor settings
+.vscode/
+.idea/
+.replit-artifact/
